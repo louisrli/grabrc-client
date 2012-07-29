@@ -1,0 +1,4 @@
+Integration tests for the grabrc Python client.
+
+To be safe, these should be run on a build user whose dotfiles can be deleted with minimal impact.
+However, the tests try their best to setup and teardown a different environment for testing.

@@ -8,9 +8,9 @@ import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-
+REPO_NAME = "grabrc-repo"
 PROG_NAME = "grabrc"
-REPO_NAME = "%s-repo" % PROG_NAME
+SERVER_URL = "http://grabrc.heroku.com"
 
 
 def main():
@@ -148,8 +148,8 @@ def _download_directory(dirname, options):
 
 
 def _download_file(filename, options):
-    FILE_URL = "https://raw.github.com/%s/%s/master/%s" % \
-        (options.github, REPO_NAME, filename)
+    FILE_URL = "%s/%s/%s" % \
+        (SERVER_URL, options.github, filename)
 
     logging.debug("FILE_URL: %s" % FILE_URL)
 
