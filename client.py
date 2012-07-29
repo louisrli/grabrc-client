@@ -2,41 +2,43 @@
 
 from optparse import OptionParser, OptionGroup
 import urllib2
-import fileinput
 import os
 import sys
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-PROG_NAME="grabrc"
-REPO_NAME="%s-repo" % PROG_NAME
+
+PROG_NAME = "grabrc"
+REPO_NAME = "%s-repo" % PROG_NAME
+
 
 def main():
     """
     Parses command line options, then delegates to various other functions.
     """
+
     parser = OptionParser(usage="%prog [options] ['repo'| FILENAME | dir:DIRECTORY] [save ...]",
                           version="0.1 alpha")
     topgroup = OptionGroup(parser, "General")
     filegroup = OptionGroup(parser, "Files")
     directorygroup = OptionGroup(parser, "Directories")
 
-    topgroup.add_option("-o", "-O",  "--name",
+    topgroup.add_option("-o", "-O", "--name",
                         dest="outfile", action="store", metavar="FILE",
                         help="Rename the output file to the given name.")
 
     topgroup.add_option("-d", "--destdir",
                         dest="destdir", action="store", metavar="DIR",
-                        help="Place the downloaded file in the given directory")
+                        help="Place downloaded file in the given directory")
 
     directorygroup.add_option("-k", "--keep-tar",
                               dest="tar", action="store_true",
-                              help="Don't untar a directory or repo when downloaded.")
+                              help="Don't untar a directory or repo.")
 
     filegroup.add_option("-a", "--append",
                          dest="append", action="store_true",
-                         help="If the file already exists, append to the existing file")
+                         help="If file already exists, append to existing file")
 
     filegroup.add_option("-r", "--replace",
                          dest="replace", action="store_true",
@@ -101,13 +103,11 @@ def main():
 
     opts.github = github_acc
 
-
-
     # If CLI options don't override account, use this one
     logging.debug("Github account: %s" % github_acc)
 
     # Execute actual script
-    DIR_PREFIX="dir:"
+    DIR_PREFIX = "dir:"
     if mode == "upload":
         if upload_name.startswith(DIR_PREFIX):
             pass
@@ -115,21 +115,26 @@ def main():
             pass
     elif mode == "download":
         if download_name.startswith(DIR_PREFIX):
-            _download_directory(download_name, opts) #todo
+            # TODO
+            _download_directory(download_name, opts)
         else:
-            _download_file(download_name, opts) #todo
+            # TODO
+            _download_file(download_name, opts)
 
         # Tests
         # Test if prompts when file exists (pos, neg)
         # Test options being correct
         # Test basic cli arguments (e.g. not save, etc.)
 
+
 def _exit_runtime_error(*args):
     print "Oops! Something went wrong:\n-- %s" % "\n-- ".join(args)
     sys.exit(1)
 
+
 def _print_info(prefix, msg):
     print "[%s] %s" % (prefix.upper(), msg)
+
 
 def _http_get_contents(url):
     try:
@@ -137,12 +142,15 @@ def _http_get_contents(url):
     except urllib2.HTTPError, e:
         _exit_runtime_error(e.__str__(), "Requested URL: %s" % url)
 
+
 def _download_directory(dirname, options):
     pass
 
+
 def _download_file(filename, options):
     FILE_URL = "https://raw.github.com/%s/%s/master/%s" % \
-      (options.github, REPO_NAME, filename)
+        (options.github, REPO_NAME, filename)
+
     logging.debug("FILE_URL: %s" % FILE_URL)
 
     contents = _http_get_contents(FILE_URL)
@@ -162,18 +170,19 @@ def _download_file(filename, options):
     # Handle --append, --replace, or default (write to backup file if exists in `pwd`)
     if not file_exists or options.append:
         handle = open(target_path, "a+")
-        if options.append: handle.write("\n\n") # Make appending prettier
+        if options.append:  # Make appending prettier
+            handle.write("\n\n")
     elif options.replace:
         handle = open(target_path, "w+")
     elif file_exists:
         backup_path = target_path + ".gr.bak"
         print "[WARNING] %s already exists! \nWriting to: [ %s ]" % (target_path, backup_path)
-        handle = open (backup_path, "w+")
+        handle = open(backup_path, "w+")
     else:
         _exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
 
-    logging.debug("(Outfile, Destination, Target)\n -- (%s, %s, %s)" \
-                    % (outfile, destdir, target_path))
+    logging.debug("(Outfile, Destination, Target)\n -- (%s, %s, %s)"
+                  % (outfile, destdir, target_path))
 
     handle.write(contents)
     _print_info("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
