@@ -10,9 +10,12 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 PROG_NAME="grabrc"
-REPO_NAME="grabrc-repo"
+REPO_NAME="%s-repo" % PROG_NAME
 
 def main():
+    """
+    Parses command line options, then delegates to various other functions.
+    """
     parser = OptionParser(usage="%prog [options] ['repo'| FILENAME | dir:DIRECTORY] [save ...]",
                           version="0.1 alpha")
     topgroup = OptionGroup(parser, "General")
@@ -112,38 +115,37 @@ def main():
             pass
     elif mode == "download":
         if download_name.startswith(DIR_PREFIX):
-            download_directory(download_name, opts) #todo
+            _download_directory(download_name, opts) #todo
         else:
-            download_file(download_name, opts) #todo
-
+            _download_file(download_name, opts) #todo
 
         # Tests
         # Test if prompts when file exists (pos, neg)
         # Test options being correct
         # Test basic cli arguments (e.g. not save, etc.)
 
-def exit_runtime_error(*args):
+def _exit_runtime_error(*args):
     print "Oops! Something went wrong:\n-- %s" % "\n-- ".join(args)
     sys.exit(1)
 
-def print_info(prefix, msg):
+def _print_info(prefix, msg):
     print "[%s] %s" % (prefix.upper(), msg)
 
-def http_get_contents(url):
+def _http_get_contents(url):
     try:
         return urllib2.urlopen(url).read()
     except urllib2.HTTPError, e:
-        exit_runtime_error(e.__str__(), "Requested URL: %s" % url)
+        _exit_runtime_error(e.__str__(), "Requested URL: %s" % url)
 
-def download_directory(dirname, options):
+def _download_directory(dirname, options):
     pass
 
-def download_file(filename, options):
+def _download_file(filename, options):
     FILE_URL = "https://raw.github.com/%s/%s/master/%s" % \
       (options.github, REPO_NAME, filename)
     logging.debug("FILE_URL: %s" % FILE_URL)
 
-    contents = http_get_contents(FILE_URL)
+    contents = _http_get_contents(FILE_URL)
 
     # Print and exit if --print is set
     if options.stdout:
@@ -154,8 +156,10 @@ def download_file(filename, options):
     outfile = options.outfile or filename
     destdir = options.destdir or os.getcwd()
     target_path = destdir + "/" + outfile
+    backup_path = None
     file_exists = os.path.isfile(target_path)
 
+    # Handle --append, --replace, or default (write to backup file if exists in `pwd`)
     if not file_exists or options.append:
         handle = open(target_path, "a+")
         if options.append: handle.write("\n\n") # Make appending prettier
@@ -166,13 +170,13 @@ def download_file(filename, options):
         print "[WARNING] %s already exists! \nWriting to: [ %s ]" % (target_path, backup_path)
         handle = open (backup_path, "w+")
     else:
-        exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
+        _exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
 
     logging.debug("(Outfile, Destination, Target)\n -- (%s, %s, %s)" \
                     % (outfile, destdir, target_path))
 
     handle.write(contents)
-    print_info("success", "Downloaded %s to %s." % (filename, target_path))
+    _print_info("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
 
 if __name__ == '__main__':
     main()
