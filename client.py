@@ -18,6 +18,7 @@ def main():
     Parses command line options, then delegates to various other functions.
     """
 
+    # TODO add description of default options
     parser = OptionParser(usage="%prog [options] ['repo'| FILENAME | dir:DIRECTORY] [save ...]",
                           version="0.1 alpha")
     topgroup = OptionGroup(parser, "General")
@@ -26,15 +27,25 @@ def main():
 
     topgroup.add_option("-o", "-O", "--name",
                         dest="outfile", action="store", metavar="FILE",
-                        help="Rename the output file to the given name.")
+                        help="Rename the output file/directory.")
 
     topgroup.add_option("-d", "--destdir",
                         dest="destdir", action="store", metavar="DIR",
-                        help="Place downloaded file in the given directory")
+                        help="Place downloaded file/directory in the given directory. \
+                        Default: The current working directory.")
+
+    topgroup.add_option("--no-backup",
+                        dest="nobackup", action="store_true",
+                        help="If the file already exists, don't make a backup.")
 
     directorygroup.add_option("-k", "--keep-tar",
                               dest="tar", action="store_true",
-                              help="Don't untar a directory or repo.")
+                              help="Download the directory as a tar. \
+                              Default: Untar the directory")
+
+    directorygroup.add_option("-z", "--keep-zip",
+                              dest="zip", action="store_true",
+                              help="Download the directory as a .zip.")
 
     filegroup.add_option("-a", "--append",
                          dest="append", action="store_true",
@@ -72,13 +83,15 @@ def main():
         download_name = args[0]
     elif "save" in args:
         mode = "upload"
-        upload_name = (n for n in args if n != "save")
+        upload_filepath = (n for n in args if n != "save")
     else:
         usage_exit("error", "Invalid arguments. " + try_msg)
 
     # Validate options: Invalid combinations
     if opts.append and opts.replace:
         usage_exit("error", "Both --append and --replace were selected. Please select one.")
+    if opts.zip and opts.tar:
+        usage_exit("error", "Both --keep-zip and --keep-tar were selected. Please select one.")
 
     # Check config file (~/.grabrc) for Github username
     configpath = "%s/.grabrc" % os.path.expanduser("~")
@@ -98,7 +111,7 @@ def main():
         cfile.write(github_acc)
     else:
         cfile = open(configpath, 'r+')
-        github_acc = cfile.readline()
+        github_acc = cfile.readline().strip()
     cfile.close()
 
     opts.github = github_acc
@@ -112,19 +125,13 @@ def main():
         if upload_name.startswith(DIR_PREFIX):
             pass
         else:
-            pass
+            _upload_file(upload_filepath, opts)
     elif mode == "download":
         if download_name.startswith(DIR_PREFIX):
             # TODO
             _download_directory(download_name, opts)
         else:
-            # TODO
             _download_file(download_name, opts)
-
-        # Tests
-        # Test if prompts when file exists (pos, neg)
-        # Test options being correct
-        # Test basic cli arguments (e.g. not save, etc.)
 
 
 def _exit_runtime_error(*args):
@@ -147,7 +154,42 @@ def _download_directory(dirname, options):
     pass
 
 
+def _create_git_repo():
+    """
+    Creates the local copy of the grabrc git repository if
+    it doesn't already exist. If it does, update it accordingly
+    """
+
+    # Check for git
+    if not subprocess.call("git"):
+        _exit_runtime_error("Couldn't find git! Are you sure it is \
+        installed and on the PATH.")
+
+    # Check if it exists
+    if not os.path.exists(git_dirpath):
+        os.mkdir(git_dirpath)
+    git_dirpath = os.path.expanduser("~/.grabrc.git")
+
+    # Check if it's a git repo
+    if not os.path.exists(git_dirpath + "/.git/"):
+        os.chdir(git_dirpath)
+        subprocess.call(["git", "init"])
+        # TODO
+
+
+
+
+def _upload_file(filename, options):
+    pass
+    # Checkout grabrc repo
+    # Copy the target file to the top level directory
+    # Commit it with some timestamped, automatic messgae
+    pass
+
+
 def _download_file(filename, options):
+    """Downloads a file from the grab-rc server"""
+
     FILE_URL = "%s/%s/%s" % \
         (SERVER_URL, options.github, filename)
 
