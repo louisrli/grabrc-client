@@ -13,6 +13,43 @@ Tests commands of the form:
 
 class BaseIntegrationTest(unittest.TestCase):
 
+    def _get_dirname(self):
+        """
+        Temporary directory for downloaded test files.
+        Implemented by subclasses.
+        """
+        pass
+
+    def setUp(self):
+        """
+        Clears out old temporary test directories, then
+        creates a new one.
+        """
+        self.BACKUP_SUFFIX = ".gr.bak"
+        self.TEST_USER = "louisrli"
+        self.TEST_FILE = ".vimrc"
+        self.current_dir = os.path.dirname(__file__)
+        self.client = self.current_dir + "/../client.py"
+        self.test_dir = self.current_dir + "/" + self._get_dirname()
+        if os.path.exists(self.test_dir):
+            shutil.rmtree(self.test_dir)
+        os.mkdir(self.test_dir)
+        os.chdir(self.test_dir)
+
+        self.TEST_STR = "# test. I don't use vim."
+
+    def doCleanups(self):
+        """
+        Delete the temporary test directory.
+        """
+        shutil.rmtree(self.test_dir)
+
+    def __setup_config(self):
+        # Overwrites the current configuration file.
+        config = open(os.path.expanduser("~/.grabrc"), "w+")
+        config.write(self.TEST_USER)
+
+    # Helper functions, usable by subclasses
     def _path_in_tmpdir(self, filename):
         return self.test_dir + "/" + filename
 
@@ -32,35 +69,6 @@ class BaseIntegrationTest(unittest.TestCase):
     def _execute_client_output(self, *args):
         # Command must have exit code of 0
         return subprocess.check_output([self.client] + list(args))
-
-    def _get_dirname(self):
-        """
-        Temporary directory for downloaded test files.
-        Implemented by subclasses.
-        """
-        pass
-
-    def setUp(self):
-        """
-        Clears out old temporary test directories, then
-        creates a new one.
-        """
-        # TODO - register louisrli
-        self.current_dir = os.path.dirname(__file__)
-        self.client = self.current_dir + "/../client.py"
-        self.test_dir = self.current_dir + "/" + self._get_dirname()
-        if os.path.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
-        os.mkdir(self.test_dir)
-        os.chdir(self.test_dir)
-
-        self.vim_str = "# test. I don't use vim."
-
-    def doCleanups(self):
-        """
-        Delete the temporary test directory.
-        """
-        shutil.rmtree(self.test_dir)
 
 if __name__ == 'main':
     unittest.main()

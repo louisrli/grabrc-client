@@ -19,33 +19,33 @@ class TestFileDownload(BaseIntegrationTest):
 
     # Default
     def test_clean_download(self):
-        self._execute_client(".vimrc")
-        self.assertEqual(self._read_output(".vimrc"), self.vim_str)
+        self._execute_client(self.TEST_FILE)
+        self.assertEqual(self._read_output(self.TEST_FILE), self.TEST_STR)
 
     def test_default_backup(self):
         self._execute_client(".emacs")
         self._execute_client(".emacs")
         self.assertEqual(self._read_output(".emacs"),
-                         self._read_output(".emacs.gr.bak"))
+                         self._read_output(".emacs" + self.BACKUP_SUFFIX))
 
     # Append
     def test_append(self):
-        self._execute_client(".vimrc")
-        self._execute_client(".vimrc", "--append")
-        self.assertTrue(self._read_output(".vimrc"))
-        self.assertFalse(os.path.exists(self._path_in_tmpdir(".vimrc.gr.bak")))
+        self._execute_client(self.TEST_FILE)
+        self._execute_client(self.TEST_FILE, "--append")
+        self.assertTrue(self._read_output(self.TEST_FILE))
+        self.assertFalse(os.path.exists(self._path_in_tmpdir(self.TEST_FILE + self.BACKUP_SUFFIX)))
 
     def test_append_on_empty(self):
-        self._execute_client(".vimrc", "--append")
-        self.assertEqual(self.vim_str, self._read_output(".vimrc"),
+        self._execute_client(self.TEST_FILE, "--append")
+        self.assertEqual(self.TEST_STR, self._read_output(self.TEST_FILE),
                          "--append on nonexistent file should create a new file")
 
     # Replace
     def test_replace(self):
-        self._execute_client(".vimrc")
-        self._execute_client(".vimrc", "--replace")
-        self.assertFalse(os.path.exists(self._path_in_tmpdir(".vimrc.gr.bak")))
-        self.assertEqual(self._read_output(".vimrc"), self.vim_str,
+        self._execute_client(self.TEST_FILE)
+        self._execute_client(self.TEST_FILE, "--replace")
+        self.assertFalse(os.path.exists(self._path_in_tmpdir(self.TEST_FILE + "gr.bak")))
+        self.assertEqual(self._read_output(self.TEST_FILE), self.TEST_STR,
                          "--replace should replace existing file content")
 
     def test_append_replace_exclusive(self):
@@ -57,9 +57,9 @@ class TestFileDownload(BaseIntegrationTest):
         self.assertTrue(self._execute_client(".emacs", "--append", "--replace") != 0)
 
     def test_print(self):
-        output = self._execute_client_output(".vimrc", "--print").strip()
-        self.assertEqual(self.vim_str, output)
-        self.assertFalse(os.path.exists(self._path_in_tmpdir(".vimrc")))
+        output = self._execute_client_output(self.TEST_FILE, "--print").strip()
+        self.assertEqual(self.TEST_STR, output)
+        self.assertFalse(os.path.exists(self._path_in_tmpdir(self.TEST_FILE)))
 
 
 if __name__ == 'main':
