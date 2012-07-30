@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 """
-Integration test for file downloads.
+Functional test for file downloads.
 Tests commands of the form:
    {prog} FILENAME [--append|--replace|--print]
 """
