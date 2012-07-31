@@ -4,12 +4,6 @@ import sys
 import shutil
 import subprocess
 
-"""
-Functional test for file downloads.
-Tests commands of the form:
-   {prog} FILENAME [--append|--replace|--print]
-"""
-
 
 class BaseIntegrationTest(unittest.TestCase):
 
