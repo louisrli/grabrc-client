@@ -1,42 +1,32 @@
 import unittest
 import os
-import sys
 import shutil
 import subprocess
-
+from client import const
 
 class BaseIntegrationTest(unittest.TestCase):
-
-    def _get_dirname(self):
-        """
-        Temporary directory for downloaded test files.
-        Implemented by subclasses.
-        """
-        pass
 
     def setUp(self):
         """
         Clears out old temporary test directories, then
         creates a new one.
         """
-        self.BACKUP_SUFFIX = ".gr.bak"
+        self.TMPDIR = "tmp-grabrc-test"
+        self.BACKUP_SUFFIX = const.Const.BACKUP_SUFFIX
         self.TEST_USER = "louisrli"
-        self.TEST_FILE = ".vimrc"
         self.current_dir = os.path.dirname(__file__)
-        self.client = self.current_dir + "/../client.py"
-        self.test_dir = self.current_dir + "/" + self._get_dirname()
-        if os.path.exists(self.test_dir):
-            shutil.rmtree(self.test_dir)
-        os.mkdir(self.test_dir)
-        os.chdir(self.test_dir)
-
-        self.TEST_STR = "# test. I don't use vim."
+        self.client = self.current_dir + "/../client/client.py"
+        self.TEST_DIR = self.current_dir + "/" + self.BACKUP_SUFFIX
+        if os.path.exists(self.TEST_DIR):
+            shutil.rmtree(self.TEST_DIR)
+        os.mkdir(self.TEST_DIR)
+        os.chdir(self.TEST_DIR)
 
     def doCleanups(self):
         """
         Delete the temporary test directory.
         """
-        shutil.rmtree(self.test_dir)
+        shutil.rmtree(self.TEST_DIR)
 
     def __setup_config(self):
         # Overwrites the current configuration file.
@@ -45,7 +35,8 @@ class BaseIntegrationTest(unittest.TestCase):
 
     # Helper functions, usable by subclasses
     def _path_in_tmpdir(self, filename):
-        return self.test_dir + "/" + filename
+        """Returns absolute path of a filename in the tmpdir"""
+        return self.TEST_DIR + "/" + filename
 
     def _read_output(self, filename):
         """

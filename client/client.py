@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from optparse import OptionParser, OptionGroup
-import subprocess
 import StringIO
 import urllib2
 import os
@@ -11,12 +10,11 @@ import glob
 import zipfile
 import tarfile
 import shutil
+import util
+from const import Const
 
 logging.basicConfig(level=logging.DEBUG)
 
-REPO_NAME = "grabrc-repo"
-PROG_NAME = "grabrc"
-SERVER_URL = "http://grabrc.heroku.com"
 
 
 def main():
@@ -81,7 +79,8 @@ def main():
     try_msg = "Try either 'save FILE' or 'FILE'"
 
     # Validate options: number of arguments
-    len(args) > 2 and usage_exit("error", "Invalid number of arguments ( > 2). " + try_msg)
+    if len(args) > 2:
+        usage_exit("error", "Invalid number of arguments ( > 2). " + try_msg)
 
     # Validate options: either "save" or empty
     # TODO if it has "save" with no argument, throw an error
@@ -110,13 +109,13 @@ def main():
         github_acc = opts.github
 
     # Interactively prompt for username if ~/.grabrc does not exist
-    if (not os.path.isfile(configpath)):
+    if not os.path.isfile(configpath):
         print """\
         ========================================================
         Welcome! This seems to be your first time starting %s.
         Please enter your Github username.
         %s will search for files in the repository named %s""" \
-        % (PROG_NAME, PROG_NAME, REPO_NAME)
+        % (Const.PROG_NAME, Const.PROG_NAME, Const.REPO_NAME)
 
         github_acc = raw_input('-- Github account: ')
         cfile = open(configpath, 'w+')
@@ -149,45 +148,6 @@ def main():
 # Utility functions for downloading, printing, exiting
 ################################################################################
 
-
-def _exit_runtime_error(*args):
-    print "Oops! Something went wrong:\n-- %s" % "\n-- ".join(args)
-    sys.exit(1)
-
-
-def _print_info(prefix, msg):
-    print "[%s] %s" % (prefix.upper(), msg)
-
-
-def _exec_cmd(str):
-    return subprocess.Popen(str.split(" "),
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE).communicate()
-
-
-def _http_get_contents(url):
-    try:
-        return urllib2.urlopen(url).read()
-    except urllib2.HTTPError, e:
-        _exit_runtime_error(e.__str__(), "Requested URL: %s" % url)
-
-
-def _untar_gz(targz):
-    targz.extractall()
-    targz.close()
-
-
-def _backup_file(filepath, suffix=".bak"):
-    """Backs up a file if it already exists. If a .bak file already exists,
-    then it appends .bak to it again and backs it up."""
-    if not os.path.exists(filepath):
-        return
-    elif os.path.exists(filepath):
-        backup_path = filepath + suffix
-        shutil.move(filepath, backup_path)
-        _backup_file(backup_path + suffix, suffix)
-
-
 ################################################################################
 # Auxiliary functions
 # Functions that don't represent the main logic, but still
@@ -201,9 +161,9 @@ def _get_grabrc_archive(username, tar_or_zip):
     Returns a file object (zip or tar).
     """
     try:
-        contents = urllib2.urlopen("%s/%s/repo/%s" % (SERVER_URL, username, tar_or_zip))
+        contents = urllib2.urlopen("%s/%s/repo/%s" % (Const.SERVER_URL, username, tar_or_zip))
     except urllib2.HTTPError, e:
-        _exit_runtime_error(e.__str__(), "Attempted to get %s archive" % tar_or_zip)
+        util.exit_runtime_error(e.__str__(), "Attempted to get %s archive" % tar_or_zip)
 
     file_as_str = StringIO.StringIO()
     file_as_str.write(contents.read())
@@ -214,10 +174,11 @@ def _get_grabrc_archive(username, tar_or_zip):
     elif tar_or_zip == "zip":
         return zipfile.ZipFile(contents, "r")
 
+
 def _which_git():
     # Check for git
-    if not _exec_cmd("git"):
-        _exit_runtime_error("Couldn't find git! Are you sure it's \
+    if not util.exec_cmd("git"):
+        util.exit_runtime_error("Couldn't find git! Are you sure it's \
         installed and on the PATH?")
 
 
@@ -233,9 +194,9 @@ def _create_grabrc_folder(username, destdir, dirname):
 
     # Sanity check: if they have a file named .grabrc.git (they shouldn't))
     if os.path.isfile(repo_dirpath):
-        _print_info("warning", "Found a file where there should be a git directory. \
+        util.print_info("warning", "Found a file where there should be a git directory. \
         Backing up...")
-        _backup_file(repo_dirpath)
+        util.backup_file(repo_dirpath)
 
     # Make a temporary staging directory
     tmp_path = repo_dirpath + "/grabrctmp.d"
@@ -243,8 +204,8 @@ def _create_grabrc_folder(username, destdir, dirname):
     def download_and_untar():
         """Downloads a tar from the server, untars, the files one directory up"""
         repo_targz = _get_grabrc_archive(username, "targz")
-        _untar_gz(repo_targz)
-        os.renames(glob.glob("./%s-%s*" % (username, REPO_NAME))[0], tmp_path)
+        util.untar_gz(repo_targz)
+        os.renames(glob.glob("./%s-%s*" % (username, Const.REPO_NAME))[0], tmp_path)
 
     if os.path.isdir(repo_dirpath):
         print "Found an existing directory named %s in %s..." % (dirname, destdir)
@@ -290,10 +251,10 @@ def _download_subdirectory(subdir_name, options):
     # Check if the target directory exists (i.e. .emacs.d) in the destdir
     target_exists = os.path.exists(TARGET_PATH)
     if target_exists:
-        _print_info("warning", "Found an existing directory %s" % subdir_name)
-        _print_info("warning", "Backing up directory %s to %s.bak" %
+        util.print_info("warning", "Found an existing directory %s" % subdir_name)
+        util.print_info("warning", "Backing up directory %s to %s.bak" %
                    (subdir_name, subdir_name))
-        _backup_file(TARGET_PATH, ".bak")
+        util.backup_file(TARGET_PATH, Const.BACKUP_SUFFIX)
         # TEST CASE
 
     # Try to download the repository then move it to the current directory
@@ -305,7 +266,7 @@ def _download_subdirectory(subdir_name, options):
                               TMPDIR_NAME)
 
         if not os.path.exists(os.path.join(TMPDIR_PATH, subdir_name)):
-            _exit_runtime_error("Couldn't find the subdirectory %s in the repository"
+            util.exit_runtime_error("Couldn't find the subdirectory %s in the repository"
                                 % subdir_name)
         # TEST CASE
 
@@ -328,11 +289,11 @@ def _download_file(filename, options):
     """Downloads a file from the grab-rc server"""
 
     FILE_URL = "%s/%s/%s" % \
-        (SERVER_URL, options.github, filename)
+        (Const.SERVER_URL, options.github, filename)
 
     logging.debug("FILE_URL: %s" % FILE_URL)
 
-    contents = _http_get_contents(FILE_URL)
+    contents = util.http_get_contents(FILE_URL)
 
     # Print and exit if --print is set
     if options.stdout:
@@ -355,17 +316,17 @@ def _download_file(filename, options):
         handle = open(target_path, "w+")
     elif file_exists:
         # Write the new file to the backup path rather than moving the existing file
-        backup_path = target_path + ".gr.bak"
+        backup_path = target_path + Const.BACKUP_SUFFIX
         print "[WARNING] %s already exists! \nWriting to: [ %s ]" % (target_path, backup_path)
         handle = open(backup_path, "w+")
     else:
-        _exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
+        util.exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
 
     logging.debug("(Outfile, Destination, Target)\n -- (%s, %s, %s)"
                   % (outfile, destdir, target_path))
 
     handle.write(contents)
-    _print_info("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
+    util.print_info("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
 
 if __name__ == '__main__':
     main()
