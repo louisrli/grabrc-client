@@ -1,14 +1,14 @@
 import unittest
 import os
-from abstract_test_base import BaseIntegrationTest
+from testbase import BaseIntegrationTest
 
 TEST_STR = "# test. I don't use vim."
 TEST_FILE = ".vimrc"
 RAND_FILE = ".emacs"  # Arbitrary file whose content is unimportant
 
-
 # Functional test for file downloads.
 # Tests commands of the form: {prog} FILENAME [--append|--replace|--print]
+
 
 class TestFileDownloadNormal(BaseIntegrationTest):
 
@@ -21,6 +21,7 @@ class TestFileDownloadNormal(BaseIntegrationTest):
         self._execute_client(RAND_FILE)
         self.assertEqual(self._read_output(RAND_FILE),
                          self._read_output(RAND_FILE + self.BACKUP_SUFFIX))
+
 
 class TestFileDownloadAppend(BaseIntegrationTest):
     """
@@ -37,6 +38,7 @@ class TestFileDownloadAppend(BaseIntegrationTest):
         self._execute_client(TEST_FILE, "--append")
         self.assertEqual(TEST_STR, self._read_output(TEST_FILE),
                          "--append on nonexistent file should create a new file")
+
 
 class TestFileDownloadReplace(BaseIntegrationTest):
     """

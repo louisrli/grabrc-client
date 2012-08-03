@@ -4,6 +4,7 @@ import shutil
 import subprocess
 from client import const
 
+
 class BaseIntegrationTest(unittest.TestCase):
 
     def setUp(self):
@@ -14,13 +15,16 @@ class BaseIntegrationTest(unittest.TestCase):
         self.TMPDIR = "tmp-grabrc-test"
         self.BACKUP_SUFFIX = const.Const.BACKUP_SUFFIX
         self.TEST_USER = "louisrli"
-        self.current_dir = os.path.dirname(__file__)
-        self.client = self.current_dir + "/../client/client.py"
-        self.TEST_DIR = self.current_dir + "/" + self.BACKUP_SUFFIX
+        self.script_dir = os.path.dirname(__file__)
+        self.client = self.script_dir + "/../client/client.py"
+
+        self.TEST_DIR = self.script_dir + "/" + self.TMPDIR
         if os.path.exists(self.TEST_DIR):
             shutil.rmtree(self.TEST_DIR)
         os.mkdir(self.TEST_DIR)
         os.chdir(self.TEST_DIR)
+
+        self.__setup_config
 
     def doCleanups(self):
         """
@@ -29,7 +33,9 @@ class BaseIntegrationTest(unittest.TestCase):
         shutil.rmtree(self.TEST_DIR)
 
     def __setup_config(self):
-        # Overwrites the current configuration file.
+        """
+        Overwrites the current configuration file with the test user
+        """
         config = open(os.path.expanduser("~/.grabrc"), "w+")
         config.write(self.TEST_USER)
 

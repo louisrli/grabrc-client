@@ -7,3 +7,4 @@ class Const:
     PROG_NAME = "grabrc"
     SERVER_URL = "http://grabrc.heroku.com"
     BACKUP_SUFFIX = ".grbak"
+    DEFAULT_DIRNAME = "grabrc.d"

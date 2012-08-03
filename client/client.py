@@ -16,7 +16,6 @@ from const import Const
 logging.basicConfig(level=logging.DEBUG)
 
 
-
 def main():
     """
     Parses command line options, then delegates to various other functions.
@@ -76,17 +75,23 @@ def main():
         print "[%s] %s" % (level.upper(), reason)
         sys.exit(1)
 
-    try_msg = "Try either 'save FILE' or 'FILE'"
+    try_msg = "Try either 'FILE' to download a file or 'save FILE' " \
+              "to save a file"
 
     # Validate options: number of arguments
     if len(args) > 2:
         usage_exit("error", "Invalid number of arguments ( > 2). " + try_msg)
 
     # Validate options: either "save" or empty
-    # TODO if it has "save" with no argument, throw an error
     mode = "download"
     if len(args) == 1:
-        download_name = args[0]
+        arg = args[0]
+        if arg == "save":
+            usage_exit("error", "Please specify a file to save.")
+        elif arg == "repo":
+            mode = "repo"
+        else:
+            download_name = arg
     elif "save" in args:
         mode = "upload"
         upload_filepath = (n for n in args if n != "save").next()
@@ -101,6 +106,9 @@ def main():
 
     # Set defaults
     opts.destdir = opts.destdir or os.getcwd()
+    opts.destdir = os.path.expanduser(opts.destdir.strip())
+    if opts.outfile:
+        opts.outfile = opts.outfile.strip()
 
     # Check config file (~/.grabrc) for Github username
     configpath = "%s/.grabrc" % os.path.expanduser("~")
@@ -139,21 +147,15 @@ def main():
             _upload_file(upload_filepath, opts)
     elif mode == "download":
         if download_name.startswith(DIR_PREFIX):
-            # TODO
             _download_subdirectory(download_name[len(DIR_PREFIX):], opts)
         else:
             _download_file(download_name, opts)
+    elif mode == "repo":
+        _download_repo_nongit(opts)
 
 ################################################################################
 # Utility functions for downloading, printing, exiting
 ################################################################################
-
-################################################################################
-# Auxiliary functions
-# Functions that don't represent the main logic, but still
-# do a lot of heavy lifting.
-################################################################################
-
 
 def _get_grabrc_archive(username, tar_or_zip):
     """
@@ -188,11 +190,9 @@ def _create_grabrc_folder(username, destdir, dirname):
     it doesn't already exist. If it does, update it accordingly
     """
     # Check if the repo exists
-    if not destdir:
-        destdir = os.getcwd()
     repo_dirpath = os.path.join(destdir, dirname)
 
-    # Sanity check: if they have a file named .grabrc.git (they shouldn't))
+    # Sanity check: if they have a file named with the directory (they shouldn't))
     if os.path.isfile(repo_dirpath):
         util.print_info("warning", "Found a file where there should be a git directory. \
         Backing up...")
@@ -209,10 +209,11 @@ def _create_grabrc_folder(username, destdir, dirname):
 
     if os.path.isdir(repo_dirpath):
         print "Found an existing directory named %s in %s..." % (dirname, destdir)
-        print "Removing the directory..."
-        shutil.rmtree(repo_dirpath)
+        print "Backing up the directory..."
+        util.backup_file(repo_dirpath)
 
     if not os.path.exists(repo_dirpath):
+        util.print_info("info", "Downloaded repository to %s" % repo_dirpath)
         os.mkdir(repo_dirpath)
         os.chdir(repo_dirpath)
 
@@ -227,13 +228,21 @@ def _create_grabrc_folder(username, destdir, dirname):
 # Main functions
 ################################################################################
 
-
 def _download_repo_nongit(options):
     """Downloads and extracts the git repository to the local filesystem"""
-    DEFAULT_DIRNAME = "grabrc.d"
+    util.print_info("info", "Downloading the repository...")
+
+    if options.replace:
+        shutil.rmtree(os.path.join(options.destdir, options.outfile or Const.DEFAULT_DIRNAME))
+    elif options.append:
+        util.print_info("info", "Repository download doesn't support the --append option. \
+                                Falling back to default behavior of backing up the existing \
+                                directory")
+
+    # Delegate to _create_grabrc_folder for backing up existing
     _create_grabrc_folder(options.github,
                         options.destdir,
-                        options.outfile or DEFAULT_DIRNAME)
+                        options.outfile or Const.DEFAULT_DIRNAME)
 
 
 def _download_subdirectory(subdir_name, options):
@@ -242,20 +251,28 @@ def _download_subdirectory(subdir_name, options):
     Works by downloading the whole repo and taking just the folder
     that we need.
     """
+    util.print_info("info", "Preparing to download the subdirectory %s" % subdir_name)
     TMPDIR_NAME = "grabrc.subdir.tmpd"
     TMPDIR_PATH = os.path.join(options.destdir, TMPDIR_NAME)
     TARGET_PATH = os.path.join(options.destdir, subdir_name)
     logging.debug("Subdirectory tmpdir: %s" % TMPDIR_PATH)
     logging.debug("Subdirectory target: %s" % TARGET_PATH)
 
-    # Check if the target directory exists (i.e. .emacs.d) in the destdir
     target_exists = os.path.exists(TARGET_PATH)
     if target_exists:
-        util.print_info("warning", "Found an existing directory %s" % subdir_name)
-        util.print_info("warning", "Backing up directory %s to %s.bak" %
-                   (subdir_name, subdir_name))
-        util.backup_file(TARGET_PATH, Const.BACKUP_SUFFIX)
-        # TEST CASE
+        if options.append:
+            util.print_info("warning", "Append option doesn't apply to directories. \
+                                       Falling to default behavior of backing up \
+                                       the existing directory")
+        # Note that this is 'if' and not 'elif'
+        if options.replace:
+            util.print_info("info", "Replacing the existing directory %s" % subdir_name)
+            shutil.rmtree(TARGET_PATH)
+        else:
+            util.print_info("warning", "Found an existing directory %s" % subdir_name)
+            util.print_info("warning", "Backing up existing directory %s to %s%s" %
+                   (subdir_name, subdir_name, Const.BACKUP_SUFFIX))
+            util.backup_file(TARGET_PATH)
 
     # Try to download the repository then move it to the current directory
     # _create_grabrc_folder will check if the directory already exists
@@ -268,21 +285,15 @@ def _download_subdirectory(subdir_name, options):
         if not os.path.exists(os.path.join(TMPDIR_PATH, subdir_name)):
             util.exit_runtime_error("Couldn't find the subdirectory %s in the repository"
                                 % subdir_name)
-        # TEST CASE
 
         shutil.move(os.path.join(TMPDIR_PATH, subdir_name),
-                    TARGET_PATH)
+                    options.destdir)
+        print os.listdir(options.destdir)
+    except Exception as e:
+        print e
     finally:
         # Clean up after ourselves
         shutil.rmtree(TMPDIR_PATH)
-
-
-def _upload_file(filename, options):
-    _create_grabrc_folder(options.github)
-    # Checkout grabrc repo
-    # Copy the target file to the top level directory
-    # Commit it with some timestamped, automatic messgae
-    pass
 
 
 def _download_file(filename, options):
@@ -327,6 +338,15 @@ def _download_file(filename, options):
 
     handle.write(contents)
     util.print_info("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
+
+
+def _upload_file(filename, options):
+    _create_grabrc_folder(options.github)
+    # Checkout grabrc repo
+    # Copy the target file to the top level directory
+    # Commit it with some timestamped, automatic messgae
+    pass
+
 
 if __name__ == '__main__':
     main()

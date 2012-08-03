@@ -3,6 +3,7 @@ import sys
 import urllib2
 import os
 import shutil
+from client import Const
 
 def exit_runtime_error(*args):
     print "Oops! Something went wrong:\n-- %s" % "\n-- ".join(args)
@@ -27,16 +28,17 @@ def http_get_contents(url):
 
 
 def untar_gz(targz):
+    """ Untar and extract a .tar.gz """
     targz.extractall()
     targz.close()
 
 
-def backup_file(filepath, suffix=".bak"):
+def backup_file(filepath):
     """Backs up a file if it already exists. If a .bak file already exists,
     then it appends .bak to it again and backs it up."""
     if not os.path.exists(filepath):
         return
     elif os.path.exists(filepath):
-        backup_path = filepath + suffix
+        backup_path = filepath + Const.BACKUP_SUFFIX
         shutil.move(filepath, backup_path)
-        backup_file(backup_path + suffix, suffix)
+        backup_file(backup_path + Const.BACKUP_SUFFIX)
