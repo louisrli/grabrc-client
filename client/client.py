@@ -28,7 +28,7 @@ def main():
     filegroup = OptionGroup(parser, "Files")
     directorygroup = OptionGroup(parser, "Directories")
 
-    topgroup.add_option("-o", "-O", "--name",
+    topgroup.add_option("-o", "-O", "--name", "--outfile",
                         dest="outfile", action="store", metavar="FILE",
                         help="Rename the output file/directory.")
 
@@ -254,7 +254,7 @@ def _download_subdirectory(subdir_name, options):
     util.print_info("info", "Preparing to download the subdirectory %s" % subdir_name)
     TMPDIR_NAME = "grabrc.subdir.tmpd"
     TMPDIR_PATH = os.path.join(options.destdir, TMPDIR_NAME)
-    TARGET_PATH = os.path.join(options.destdir, subdir_name)
+    TARGET_PATH = os.path.join(options.destdir, options.outfile or subdir_name)
     logging.debug("Subdirectory tmpdir: %s" % TMPDIR_PATH)
     logging.debug("Subdirectory target: %s" % TARGET_PATH)
 
@@ -286,9 +286,10 @@ def _download_subdirectory(subdir_name, options):
             util.exit_runtime_error("Couldn't find the subdirectory %s in the repository"
                                 % subdir_name)
 
-        shutil.move(os.path.join(TMPDIR_PATH, subdir_name),
-                    options.destdir)
-        print os.listdir(options.destdir)
+        os.renames(os.path.join(TMPDIR_PATH, subdir_name),
+                    TARGET_PATH)
+        print os.listdir(options.destdir)  # TODO remove debug
+        print "destdir:%s" % options.destdir  # TODO remove debug
     except Exception as e:
         print e
     finally:

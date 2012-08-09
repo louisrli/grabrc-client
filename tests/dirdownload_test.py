@@ -40,7 +40,7 @@ class DirectoryDownloadRepoTest(BaseIntegrationTest):
             "Newly created random file should not exist after using --replace")
 
 class DirectoryDownloadSubdirTest(BaseIntegrationTest):
-    TEST_SUBDIR = "test.d"
+    TEST_SUBDIR = "test.d"  # The default name of the downloaded directory
 
     def test_normal(self):
         """ Test downloading a certain subdirectory of the repository """
@@ -57,25 +57,48 @@ class DirectoryDownloadSubdirTest(BaseIntegrationTest):
             "Backup directory should exist")
 
     def test_destdir(self):
-        new_dir = "foo"
-        os.mkdir(new_dir)
-        self._execute_client("dir:%s" % self.TEST_SUBDIR, "--destdir=%s" % new_dir)
+        destdir = "foo"
+        os.mkdir(destdir)
+
+        self._execute_client("dir:%s" % self.TEST_SUBDIR, "--destdir=%s" % destdir)
         self.assertFalse(os.path.exists(self.TEST_SUBDIR),
             "Directory without --destdir should not exist.")
-        self.assertEquals("f", "foo", str(os.listdir(os.path.join(new_dir, self.TEST_SUBDIR))))
-        self.assertTrue(os.path.exists(os.path.join(new_dir, self.TEST_SUBDIR)),
+        self.assertEquals("f", "foo", str(os.listdir(os.path.join(destdir, self.TEST_SUBDIR))))
+        self.assertTrue(os.path.exists(os.path.join(destdir, self.TEST_SUBDIR)),
             "Directory should be downloaded to destdir")
 
 
     def test_outfile(self):
-        pass
+        outfile = "foobar"
+        self._execute_client("dir:%s" % self.TEST_SUBDIR, "--name=%s" % outfile)
+        self.assertFalse(os.path.exists(self.TEST_SUBDIR),
+            "Should not create a directory with the normal directory name")
+        self.assertTrue(os.path.exists(outfile), "Should create dir with outfile name")
+        self.assertTrue(os.path.isdir(outfile), "New file should be directory")
 
     def test_replace(self):
-        pass
+        self._execute_client("dir:%s" % self.TEST_SUBDIR)
+        self._execute_client("dir:%s" % self.TEST_SUBDIR)
+        self._execute_client("dir:%s" % self.TEST_SUBDIR, "--replace")
+
+        self.assertEquals(2, len(os.listdir(os.getcwd())),
+            "Two downloads + one replace should yield two files")
+        self.assertTrue(os.path.isdir(self.TEST_SUBDIR),
+            "Subdirectory should be downloaded and created")
+        self.assertFalse(os.path.isdir(self.TEST_SUBDIR +
+                                       self.BACKUP_SUFFIX + self.BACKUP_SUFFIX),
+            "Second-level (.bak.bak) backup directory should not exist")
+
+    def test_replace_nothing(self):
+        """ Test the --replace flag if no directory exists yet """
+        self._execute_client("dir:%s" % self.TEST_SUBDIR, "--replace")
+        self.assertTrue(os.path.isdir(self.TEST_SUBDIR),
+            "--replace should behave normally if no directory exists to replace.")
 
     def test_nonexistent(self):
-        pass
-
+        """ Test error handling when the subdirectory doesn't exist """
+        self.assertTrue(self._execute_client("dir:rand1fca325hajs5had") != 0,
+            "Random subdirectory should exit with nonzero value")
 
 if __name__ == 'main':
     unittest.main()

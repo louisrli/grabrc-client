@@ -24,7 +24,7 @@ class BaseIntegrationTest(unittest.TestCase):
         os.mkdir(self.TEST_DIR)
         os.chdir(self.TEST_DIR)
 
-        self.__setup_config
+        self.__setup_config()
 
     def doCleanups(self):
         """

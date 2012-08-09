@@ -2,3 +2,4 @@
 *.pyc
 .emacs*
 .vimrc*
+.idea/

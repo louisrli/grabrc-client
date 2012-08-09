@@ -54,7 +54,7 @@ class TestFileDownloadReplace(BaseIntegrationTest):
 
     def test_append_replace_exclusive(self):
         # Check subprocess return status rather than @unittest.expectedFailure
-        print "Expecting error messages below..."
+        print "=========== Expecting error messages below..."
         self.assertTrue(self._execute_client(RAND_FILE, "-a", "-r") != 0)
         self.assertTrue(self._execute_client(RAND_FILE, "-a", "--replace") != 0)
         self.assertTrue(self._execute_client(RAND_FILE, "--append", "-r") != 0)
