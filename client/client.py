@@ -11,9 +11,10 @@ import zipfile
 import tarfile
 import shutil
 import util
+import uploader
 from const import Const
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 
 def main():
@@ -24,10 +25,8 @@ def main():
     # TODO add description of default options
     parser = OptionParser(usage="%prog [options] ['repo'| FILENAME | dir:DIRECTORY] [save ...]",
                           version="0.1 alpha")
-    topgroup = OptionGroup(parser, "General")
-    filegroup = OptionGroup(parser, "Files")
-    directorygroup = OptionGroup(parser, "Directories")
 
+    topgroup = OptionGroup(parser, "General")
     topgroup.add_option("-o", "-O", "--name", "--outfile",
                         dest="outfile", action="store", metavar="FILE",
                         help="Rename the output file/directory.")
@@ -41,6 +40,7 @@ def main():
                         dest="nobackup", action="store_true",
                         help="If the file already exists, don't make a backup.")
 
+    directorygroup = OptionGroup(parser, "Directories")
     directorygroup.add_option("-k", "--keep-tar",
                               dest="tar", action="store_true",
                               help="Download the directory as a tar. \
@@ -50,6 +50,7 @@ def main():
                               dest="zip", action="store_true",
                               help="Download the directory as a .zip.")
 
+    filegroup = OptionGroup(parser, "Files")
     filegroup.add_option("-a", "--append",
                          dest="append", action="store_true",
                          help="If file already exists, append to existing file")
@@ -61,6 +62,11 @@ def main():
     filegroup.add_option("-p", "--print",
                          dest="stdout", action="store_true",
                          help="Print the file to stdout")
+
+    savegroup = OptionGroup(parser, "Saving")
+    savegroup.add_option("-m", "--message",
+                         dest="message",
+                         help="A commit message for saving a file to Github")
 
     # Validate and parse options, set mode
     map(parser.add_option_group,
@@ -106,9 +112,9 @@ def main():
 
     # Set defaults
     opts.destdir = opts.destdir or os.getcwd()
-    opts.destdir = os.path.expanduser(opts.destdir.strip())
+    opts.destdir = util.sanitize_path(opts.destdir)
     if opts.outfile:
-        opts.outfile = opts.outfile.strip()
+        opts.outfile = util.sanitize_path(opts.outfile)
 
     # Check config file (~/.grabrc) for Github username
     configpath = "%s/.grabrc" % os.path.expanduser("~")
@@ -141,10 +147,7 @@ def main():
     # Execute actual script
     DIR_PREFIX = "dir:"
     if mode == "upload":
-        if upload_filepath.startswith(DIR_PREFIX):
-            pass
-        else:
-            _upload_file(upload_filepath, opts)
+        uploader.save(upload_filepath, opts)
     elif mode == "download":
         if download_name.startswith(DIR_PREFIX):
             _download_subdirectory(download_name[len(DIR_PREFIX):], opts)
@@ -176,14 +179,6 @@ def _get_grabrc_archive(username, tar_or_zip):
     elif tar_or_zip == "zip":
         return zipfile.ZipFile(contents, "r")
 
-
-def _which_git():
-    # Check for git
-    if not util.exec_cmd("git"):
-        util.exit_runtime_error("Couldn't find git! Are you sure it's \
-        installed and on the PATH?")
-
-
 def _create_grabrc_folder(username, destdir, dirname):
     """
     Creates the local copy of the grabrc git repository if
@@ -194,7 +189,7 @@ def _create_grabrc_folder(username, destdir, dirname):
 
     # Sanity check: if they have a file named with the directory (they shouldn't))
     if os.path.isfile(repo_dirpath):
-        util.print_info("warning", "Found a file where there should be a git directory. \
+        util.print_msg("warning", "Found a file where there should be a git directory. \
         Backing up...")
         util.backup_file(repo_dirpath)
 
@@ -213,7 +208,7 @@ def _create_grabrc_folder(username, destdir, dirname):
         util.backup_file(repo_dirpath)
 
     if not os.path.exists(repo_dirpath):
-        util.print_info("info", "Downloaded repository to %s" % repo_dirpath)
+        util.print_msg("info", "Downloaded repository to %s" % repo_dirpath)
         os.mkdir(repo_dirpath)
         os.chdir(repo_dirpath)
 
@@ -230,12 +225,12 @@ def _create_grabrc_folder(username, destdir, dirname):
 
 def _download_repo_nongit(options):
     """Downloads and extracts the git repository to the local filesystem"""
-    util.print_info("info", "Downloading the repository...")
+    util.print_msg("info", "Downloading the repository...")
 
     if options.replace:
         shutil.rmtree(os.path.join(options.destdir, options.outfile or Const.DEFAULT_DIRNAME))
     elif options.append:
-        util.print_info("info", "Repository download doesn't support the --append option. \
+        util.print_msg("info", "Repository download doesn't support the --append option. \
                                 Falling back to default behavior of backing up the existing \
                                 directory")
 
@@ -251,7 +246,7 @@ def _download_subdirectory(subdir_name, options):
     Works by downloading the whole repo and taking just the folder
     that we need.
     """
-    util.print_info("info", "Preparing to download the subdirectory %s" % subdir_name)
+    util.print_msg("info", "Preparing to download the subdirectory %s" % subdir_name)
     TMPDIR_NAME = "grabrc.subdir.tmpd"
     TMPDIR_PATH = os.path.join(options.destdir, TMPDIR_NAME)
     TARGET_PATH = os.path.join(options.destdir, options.outfile or subdir_name)
@@ -261,16 +256,16 @@ def _download_subdirectory(subdir_name, options):
     target_exists = os.path.exists(TARGET_PATH)
     if target_exists:
         if options.append:
-            util.print_info("warning", "Append option doesn't apply to directories. \
+            util.print_msg("warning", "Append option doesn't apply to directories. \
                                        Falling to default behavior of backing up \
                                        the existing directory")
         # Note that this is 'if' and not 'elif'
         if options.replace:
-            util.print_info("info", "Replacing the existing directory %s" % subdir_name)
+            util.print_msg("info", "Replacing the existing directory %s" % subdir_name)
             shutil.rmtree(TARGET_PATH)
         else:
-            util.print_info("warning", "Found an existing directory %s" % subdir_name)
-            util.print_info("warning", "Backing up existing directory %s to %s%s" %
+            util.print_msg("warning", "Found an existing directory %s" % subdir_name)
+            util.print_msg("warning", "Backing up existing directory %s to %s%s" %
                    (subdir_name, subdir_name, Const.BACKUP_SUFFIX))
             util.backup_file(TARGET_PATH)
 
@@ -338,11 +333,11 @@ def _download_file(filename, options):
                   % (outfile, destdir, target_path))
 
     handle.write(contents)
-    util.print_info("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
+    util.print_msg("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
 
 
 def _upload_file(filename, options):
-    _create_grabrc_folder(options.github)
+    #_create_grabrc_folder(options.github)
     # Checkout grabrc repo
     # Copy the target file to the top level directory
     # Commit it with some timestamped, automatic messgae
