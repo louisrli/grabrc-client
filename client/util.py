@@ -12,8 +12,14 @@ def print_msg(prefix, msg):
 def info(msg):
     print_msg("info", msg)
 
+def warn(msg):
+    print_msg("warning", msg)
+
 def error(msg):
     print_msg("error", msg)
+
+def success(msg):
+    print_msg("success", msg)
 
 def exit_runtime_error(*args):
     error("Oops! Something went wrong:\n-- %s" % "\n-- ".join(args))
