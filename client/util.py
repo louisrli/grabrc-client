@@ -3,7 +3,7 @@ import sys
 import urllib2
 import os
 import shutil
-from client import Const
+from const import Const
 
 
 def print_msg(prefix, msg):
@@ -58,4 +58,3 @@ def check_git():
     if not exec_cmd_output("git"):
         exit_runtime_error("Couldn't find git! Are you sure it's \
         installed and on the PATH?")
-
