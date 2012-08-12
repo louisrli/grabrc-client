@@ -283,8 +283,6 @@ def _download_subdirectory(subdir_name, options):
 
         os.renames(os.path.join(TMPDIR_PATH, subdir_name),
                     TARGET_PATH)
-        print os.listdir(options.destdir)  # TODO remove debug
-        print "destdir:%s" % options.destdir  # TODO remove debug
     except Exception as e:
         print e
     finally:
@@ -334,15 +332,6 @@ def _download_file(filename, options):
 
     handle.write(contents)
     util.print_msg("success", "Downloaded %s to %s." % (filename, backup_path or target_path))
-
-
-def _upload_file(filename, options):
-    #_create_grabrc_folder(options.github)
-    # Checkout grabrc repo
-    # Copy the target file to the top level directory
-    # Commit it with some timestamped, automatic messgae
-    pass
-
 
 if __name__ == '__main__':
     main()
