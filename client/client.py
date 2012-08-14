@@ -17,7 +17,7 @@ def main():
     """
 
     # TODO add description of default options
-    parser = OptionParser(usage="%prog [options] [repo| FILENAME | dir:DIRECTORY] [save ...]",
+    parser = OptionParser(usage="%prog [options] [repo | FILENAME | dir:DIRECTORY] [save ...]",
                           version="r20")
 
     topgroup = OptionGroup(parser, "General")

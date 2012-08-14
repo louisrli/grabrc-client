@@ -6,12 +6,13 @@
 # -- uninstall: pip
 # -- rpm: rpmbuild / Redhat system
 
+import sys
 import os
 import subprocess
 from optparse import OptionParser
 
 parser = OptionParser(usage="%prog [pypi|install|rpm|clean]")
-
+parser.add_option("--skip-tests", action="store_true", )
 (opts, args) = parser.parse_args()
 action = args[0]
 
@@ -19,31 +20,39 @@ def shell(cmd):
     return subprocess.check_output(cmd, shell=True)
 
 def run_tests():
-    shell("nosetests")
+    if not opts.skip_tests:
+        shell("nosetests")
 
-# Handle Mac's BSD sed
-if shell("uname").strip() == 'Darwin':
-    print "On Mac OS X..."
-    sed_i = "''"
-else:
-    print "On Linux..."
-    sed_i = ""
+def sed_version(new_ver, filepath):
+    # Handle Mac's BSD sed
+    if shell("uname").strip() == 'Darwin':
+        print "On Mac OS X..."
+        sed_i = "''"
+    else:
+        print "On Linux..."
+        sed_i = ""
+    sed_cmd = "sed -i %s 's/version=\".*\"/version=\"%s\"/' %s" % (sed_i, new_ver, filepath)
+    shell(sed_cmd)
+
 
 # Update revision number
 revno = shell("git shortlog | grep -E '^[ ]+\w+' | wc -l").strip()
 print "Updating revision number of file to %s" % revno
-sed_cmd = "sed -i %s 's/version=\".*\"/version=\"r%s\"/' client/client.py" % (sed_i, revno)
-shell(sed_cmd)
+sed_version("r%s" % revno, "./client/client.py")
 print shell("grep '%s' client/client.py" % revno)
-
 
 if action == "pypi":
     run_tests()
+    if not args[1]:
+        print "Provide a release number for pypi"
+        sys.exit(1)
+    sed_version(args[1], "./setup.py")
     print shell("./setup.py sdist bdist_egg upload")
 if action == "rpm":
     run_tests()
     print shell("./setup.py bdist_rpm")
 if action == "uninstall":
+    print "[y/n]"
     shell("sudo pip uninstall grabrc-client")
 if action == "install":
     print "Building egg..."
