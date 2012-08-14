@@ -56,8 +56,9 @@ def backup_file(filepath):
         return
     elif os.path.exists(filepath):
         backup_path = filepath + Const.BACKUP_SUFFIX
-        shutil.move(filepath, backup_path)
         backup_file(backup_path + Const.BACKUP_SUFFIX)
+        shutil.move(filepath, backup_path)
+
 
 def check_git():
     """ Checks if git exists. Exits with a runtime error if it's not on the path. """

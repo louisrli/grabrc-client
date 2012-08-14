@@ -9,7 +9,7 @@ import downloader
 import uploader
 from const import Const
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 def main():
     """
@@ -18,7 +18,7 @@ def main():
 
     # TODO add description of default options
     parser = OptionParser(usage="%prog [options] [repo| FILENAME | dir:DIRECTORY] [save ...]",
-                          version="r19")
+                          version="r20")
 
     topgroup = OptionGroup(parser, "General")
     topgroup.add_option("-o", "-O", "--name", "--outfile",

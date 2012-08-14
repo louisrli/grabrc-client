@@ -55,6 +55,7 @@ class BaseIntegrationTest(unittest.TestCase):
         return contents.strip()
 
     def _execute_client(self, *args):
+        """ Some tests will expect failure here """
         return subprocess.call([self.client] + list(args))
 
     def _execute_client_output(self, *args):

@@ -31,36 +31,34 @@ def _get_grabrc_archive(username, tar_or_zip):
 
 def _create_grabrc_folder(username, destdir, dirname):
     """
-    Creates the local copy of the grabrc git repository if
-    it doesn't already exist. If it does, update it accordingly
+    Creates the local copy of the grabrc git repository in directory destdir
+    with name dirname. The path destdir/dirname should not already exist
     """
     # Check if the repo exists
     repo_dirpath = os.path.join(destdir, dirname)
-
-    # Sanity check: if they have a file named with the directory (they shouldn't))
-    if os.path.isfile(repo_dirpath):
-        util.print_msg("warning", "Found a file where there should be a git directory. \
-        Backing up...")
-        util.backup_file(repo_dirpath)
-
-    # Make a temporary staging directory
-    tmp_path = repo_dirpath + "/grabrctmp.d"
+    tmp_path = os.path.join(repo_dirpath, "grabrctmp.d")
 
     def download_and_untar():
-        """Downloads a tar from the server, untars, the files one directory up"""
+        """Downloads a tar from the server, untars one directory up"""
         repo_targz = _get_grabrc_archive(username, "targz")
         util.untar_gz(repo_targz)
         os.renames(glob.glob("./%s-%s*" % (username, Const.REPO_NAME))[0], tmp_path)
 
-    if os.path.isdir(repo_dirpath):
-        print "Found an existing directory named %s in %s..." % (dirname, destdir)
-        print "Backing up the directory..."
+
+    # Sanity check: if they have a file named with the directory (they shouldn't))
+    if os.path.isfile(repo_dirpath):
+        util.warn("Found a file where there should be a git directory. \
+                   Backing up...")
+        util.backup_file(repo_dirpath)
+    elif os.path.isdir(repo_dirpath):
+        util.info("Found an existing directory named %s in %s..." % (dirname, destdir))
+        util.info("Backing up the directory...")
         util.backup_file(repo_dirpath)
 
     if not os.path.exists(repo_dirpath):
+        # Make a temporary staging directory
         util.print_msg("info", "Downloaded repository to %s" % repo_dirpath)
-        os.mkdir(repo_dirpath)
-        os.chdir(repo_dirpath)
+        os.makedirs(repo_dirpath); os.chdir(repo_dirpath)
 
         download_and_untar()
         # Move everything from the tmpdirectory to one level up
@@ -68,6 +66,7 @@ def _create_grabrc_folder(username, destdir, dirname):
                      for filename in os.listdir(tmp_path)]
         map(lambda f: shutil.move(f, repo_dirpath), repofiles)
         os.rmdir(tmp_path)  # Directory should be empty!
+    util.success("Finished repository download.")
 
 
 def download_repo_nongit(options):
@@ -93,6 +92,7 @@ def download_subdirectory(subdir_name, options):
     Works by downloading the whole repo and taking just the folder
     that we need.
     """
+
     util.print_msg("info", "Preparing to download the subdirectory %s" % subdir_name)
     TMPDIR_NAME = "grabrc.subdir.tmpd"
     TMPDIR_PATH = os.path.join(options.destdir, TMPDIR_NAME)
@@ -100,20 +100,22 @@ def download_subdirectory(subdir_name, options):
     logging.debug("Subdirectory tmpdir: %s" % TMPDIR_PATH)
     logging.debug("Subdirectory target: %s" % TARGET_PATH)
 
+    util.info("Creating temporary directory paths...")
+
+    if options.append:
+        util.warn("Append option doesn't apply to directories. \
+        Falling to default behavior of backing up \
+        the existing directory")
+
     target_exists = os.path.exists(TARGET_PATH)
     if target_exists:
-        if options.append:
-            util.print_msg("warning", "Append option doesn't apply to directories. \
-                                       Falling to default behavior of backing up \
-                                       the existing directory")
-        # Note that this is 'if' and not 'elif'
         if options.replace:
-            util.print_msg("info", "Replacing the existing directory %s" % subdir_name)
+            util.info("Replacing the existing directory %s" % TARGET_PATH)
             shutil.rmtree(TARGET_PATH)
         else:
-            util.print_msg("warning", "Found an existing directory %s" % subdir_name)
-            util.print_msg("warning", "Backing up existing directory %s to %s%s" %
-                   (subdir_name, subdir_name, Const.BACKUP_SUFFIX))
+            util.warn("Found an existing directory %s" % TARGET_PATH)
+            util.warn("Backing up existing directory %s to %s%s" %
+                   (TARGET_PATH, TARGET_PATH, Const.BACKUP_SUFFIX))
             util.backup_file(TARGET_PATH)
 
     # Try to download the repository then move it to the current directory
@@ -123,19 +125,18 @@ def download_subdirectory(subdir_name, options):
         _create_grabrc_folder(options.github,
                               options.destdir,
                               TMPDIR_NAME)
-
+        #os.makedirs(TMPDIR_PATH)  # Create the tmpdir again
+        # We still use subdir_name, the original name
         if not os.path.exists(os.path.join(TMPDIR_PATH, subdir_name)):
-            util.exit_runtime_error("Couldn't find the subdirectory %s in the repository"
-                                % subdir_name)
+            util.exit_runtime_error("Couldn't find the subdirectory %s in the repository" % subdir_name)
 
-        os.renames(os.path.join(TMPDIR_PATH, subdir_name),
-                    TARGET_PATH)
-    except Exception as e:
-        print e
+        shutil.move(os.path.join(TMPDIR_PATH, subdir_name), TARGET_PATH)
     finally:
         # Clean up after ourselves
+        util.info("Cleaning up temporary directories...")
         shutil.rmtree(TMPDIR_PATH)
 
+    util.success("Downloaded subdirectory %s to %s" % (subdir_name, TARGET_PATH))
 
 def download_file(filename, options):
     """Downloads a file from the grab-rc server"""

@@ -57,15 +57,14 @@ class DirectoryDownloadSubdirTest(BaseIntegrationTest):
             "Backup directory should exist")
 
     def test_destdir(self):
-        destdir = "foo"
-        os.mkdir(destdir)
+        destdir = os.path.join(os.getcwd(), "foo")
+        os.makedirs(destdir)
 
         self._execute_client("dir:%s" % self.TEST_SUBDIR, "--destdir=%s" % destdir)
         self.assertFalse(os.path.exists(self.TEST_SUBDIR),
             "Directory without --destdir should not exist.")
-        self.assertEquals("f", "foo", str(os.listdir(os.path.join(destdir, self.TEST_SUBDIR))))
         self.assertTrue(os.path.exists(os.path.join(destdir, self.TEST_SUBDIR)),
-            "Directory should be downloaded to destdir")
+                        "Directory should be downloaded to destdir")
 
 
     def test_outfile(self):
