@@ -156,7 +156,7 @@ def download_file(filename, options):
     outfile = options.outfile or filename
     destdir = options.destdir
     target_path = os.path.join(destdir, outfile)
-    backup_path = None
+    backup_path = target_path + Const.BACKUP_SUFFIX
     file_exists = os.path.isfile(target_path)
 
     # Handle --append, --replace, or default (write to backup file if exists in `pwd`)
@@ -168,10 +168,10 @@ def download_file(filename, options):
         handle = open(target_path, "w+")
     elif file_exists:
         # Backup the existing file and then write the new file
-        util.backup_file(target_path)
-        util.warn("[WARNING] %s already exists! Writing to: [ %s ]"
+        util.warn("%s already exists! Creating a backup at: %s"
                   % (target_path, backup_path))
-        handle = open(backup_path, "w+")
+        util.backup_file(target_path)
+        handle = open(target_path, "w+")
     else:
         util.exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
 
@@ -179,4 +179,4 @@ def download_file(filename, options):
                   % (outfile, destdir, target_path))
 
     handle.write(contents)
-    util.success("Downloaded %s to %s." % (filename, backup_path or target_path))
+    util.success("Downloaded %s to %s." % (filename, target_path))
