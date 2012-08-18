@@ -18,7 +18,7 @@ def main():
 
     # TODO add description of default options
     parser = OptionParser(usage="%prog [options] [repo | FILENAME | dir:DIRECTORY] [save ...]",
-                          version="r20")
+                          version="r21")
 
     topgroup = OptionGroup(parser, "General")
     topgroup.add_option("-o", "-O", "--name", "--outfile",

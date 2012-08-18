@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='grabrc-client',
-      version="0.2",
+      version="0.21",
       description='Lightweight, portable Github wrapper. \
 Retrieval of dotfiles (.emacs, .vimrc, etc.) in any environment',
       author='Louis Li',

@@ -40,7 +40,7 @@ def save(pathname, options):
         elif os.path.isdir(pathname):
             shutil.copytree(pathname,
                 os.path.join(tmp_repo, options.outfile or basename))
-    except IOError as e:
+    except IOError, e:
         util.exit_runtime_error(
             "Error while trying to move contents to the git repository: %s" % e)
 
