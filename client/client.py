@@ -71,7 +71,6 @@ def main():
 
     # Simple substitute for logging
     def usage_exit(level, reason):
-        parser.print_usage()
         parser.print_help()
         print "[%s] %s" % (level.upper(), reason)
         sys.exit(1)
