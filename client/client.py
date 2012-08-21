@@ -16,38 +16,49 @@ def main():
     Parses command line options, then delegates to various other functions.
     """
 
-    # TODO add description of default options
-    parser = OptionParser(usage="%prog [options] [repo | FILENAME | dir:DIRECTORY] [save ...]",
-                          version="r21")
+    usage_str = """
+%prog OPTION [FILENAME | dir: DIRECTORY | repo] | Download a file from Github
+%prog push OPTION [FILEPATH | DIRPATH]          | Push a file to Github
 
-    topgroup = OptionGroup(parser, "General")
-    topgroup.add_option("-o", "-O", "--name", "--outfile",
-                        dest="outfile", action="store", metavar="FILE",
-                        help="Rename the output file/directory.")
+Examples:
+`grabrc .emacs`  -- Download .emacs from Github.
+`grabrc dir:.emacs.d --outfile .irssiconfig` - Download the .emacs.d directory from Github.
+`grabrc repo --destdir=/tmp/` -- Download and untar the repository in /tmp/.
+`grabrc push /home/user/.vimrc` -- Save ~/.vimrc to Github, overwriting the existing .vimrc.
+"""
 
-    topgroup.add_option("-d", "--destdir",
-                        dest="destdir", action="store", metavar="DIR",
-                        help="Place the downloaded file/directory in the given directory. \
-                        Default: The current directory.")
+    parser = OptionParser(usage=usage_str, version="r21")
 
-    topgroup.add_option("--no-backup",
-                        dest="nobackup", action="store_true",
-                        help="If the file already exists, don't make a backup.")
+    download_group = OptionGroup(parser, "Download: All (files, directories, repositories)")
+    download_group.add_option("-o", "-O", "--name", "--outfile",
+                              dest="outfile", action="store", metavar="NAME",
+                              help="Rename the downloaded item to NAME.")
 
-    directorygroup = OptionGroup(parser, "Directories")
-    directorygroup.add_option("-k", "--keep-tar",
-                              dest="tar", action="store_true",
-                              help="Download the directory as a tar. \
-                              Default: Untar the directory")
+    download_group.add_option("-d", "--destdir",
+                              dest="destdir", action="store", metavar="DIR",
+                              help="Place the downloaded item in DIR. \
+                              Default: The current directory.")
 
-    directorygroup.add_option("-z", "--keep-zip",
-                              dest="zip", action="store_true",
-                              help="Download the directory as a .zip.")
+    download_group.add_option("--no-backup",
+                              dest="nobackup", action="store_true",
+                              help="If the file already exists, don't make a backup. \
+                              Default: False. If the item already exists, it will be backed up.")
 
-    filegroup = OptionGroup(parser, "Files")
+    dir_group = OptionGroup(parser, "Download: Repositories")
+    dir_group.add_option("-k", "--keep-tar",
+                         dest="tar", action="store_true",
+                         help="Download the repository as a tar.gz file. \
+                               Default: Untar the repository.")
+
+    dir_group.add_option("-z", "--keep-zip",
+                         dest="zip", action="store_true",
+                         help="Download the repository as a .zip.")
+
+    filegroup = OptionGroup(parser, "Download: Files")
     filegroup.add_option("-a", "--append",
                          dest="append", action="store_true",
-                         help="If file already exists, append to existing file")
+                         help="If file already exists, append to existing file. \
+                         Default: Back up existing file")
 
     filegroup.add_option("-r", "--replace",
                          dest="replace", action="store_true",
@@ -55,16 +66,16 @@ def main():
 
     filegroup.add_option("-p", "--print",
                          dest="stdout", action="store_true",
-                         help="Print the file to stdout")
+                         help="Print the file to the console instead of saving it.")
 
-    savegroup = OptionGroup(parser, "Saving")
+    savegroup = OptionGroup(parser, "Upload")
     savegroup.add_option("-m", "--message",
                          dest="message",
-                         help="A commit message for saving a file to Github")
+                         help="Specify a commit message for saving a file to Github.")
 
     # Validate and parse options, set mode
     map(parser.add_option_group,
-        [topgroup, filegroup, directorygroup])
+        [download_group, filegroup, dir_group])
 
     (opts, args) = parser.parse_args()
     logging.debug("Options and arguments: %s / %s" % (opts, args))
@@ -75,7 +86,7 @@ def main():
         print "[%s] %s" % (level.upper(), reason)
         sys.exit(1)
 
-    try_msg = "Try either 'FILE' to download a file or 'save FILE' " \
+    try_msg = "Try either 'grabrc FILE' to download a file or 'grabrc push FILEPATH' " \
       # TODO this should be more descriptive
 
     # Validate options: number of arguments
@@ -92,7 +103,7 @@ def main():
             mode = "repo"
         else:
             download_name = arg
-    elif "save" in args:
+    elif "push" in args:
         mode = "upload"
         upload_filepath = (n for n in args if n != "save").next()
     else:
