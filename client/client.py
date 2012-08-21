@@ -9,7 +9,7 @@ import downloader
 import uploader
 from const import Const
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 def main():
     """
