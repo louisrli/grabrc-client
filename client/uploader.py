@@ -5,6 +5,7 @@ import shutil
 import util
 from const import Const
 
+
 def save(pathname, options):
     """
     Save a directory or file by overwriting and pushing to git.
@@ -18,8 +19,13 @@ def save(pathname, options):
     tmp_repo = os.path.expanduser("~/%s" % Const.TMP_GIT_DIR)
     basename = os.path.basename(util.sanitize_path(pathname))
 
+    if not os.path.exists(pathname):
+        util.exit_runtime_error("There doesn't seem to be a file or directory at %s" % pathname)
+        
     if os.path.isdir(tmp_repo):
-        shutil.rmtree(tmp_repo)  # Remove it completely to be safe
+        # TODO - Add a local repository to be optimized, git reset hard head
+        # Currently, it deletes the repository each time
+        shutil.rmtree(tmp_repo)  # Remove the old repo to be completely to be safe
 
     # Clone the repo
     util.info("Cloning the git repository...")
@@ -39,7 +45,7 @@ def save(pathname, options):
             shutil.copy2(pathname, tmp_repo)
         elif os.path.isdir(pathname):
             shutil.copytree(pathname,
-                os.path.join(tmp_repo, options.outfile or basename))
+                            os.path.join(tmp_repo, options.outfile or basename))
     except IOError, e:
         util.exit_runtime_error(
             "Error while trying to move contents to the git repository: %s" % e)
@@ -64,9 +70,4 @@ def save(pathname, options):
     else:
         util.info("Push successful.")
 
-    util.info("Saved file successfully.")
-
-
-
-
-
+    util.success("Saved %s to Github." % pathname)

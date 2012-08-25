@@ -10,6 +10,7 @@ import os
 import logging
 import sys
 
+
 def _get_grabrc_archive(username, tar_or_zip):
     """
     Gets the repository for a certain user
@@ -29,6 +30,7 @@ def _get_grabrc_archive(username, tar_or_zip):
     elif tar_or_zip == "zip":
         return zipfile.ZipFile(contents, "r")
 
+
 def _create_grabrc_folder(username, destdir, dirname):
     """
     Creates the local copy of the grabrc git repository in directory destdir
@@ -44,7 +46,6 @@ def _create_grabrc_folder(username, destdir, dirname):
         util.untar_gz(repo_targz)
         os.renames(glob.glob("./%s-%s*" % (username, Const.REPO_NAME))[0], tmp_path)
 
-
     # Sanity check: if they have a file named with the directory (they shouldn't))
     if os.path.isfile(repo_dirpath):
         util.warn("Found a file where there should be a git directory. \
@@ -57,15 +58,21 @@ def _create_grabrc_folder(username, destdir, dirname):
 
     if not os.path.exists(repo_dirpath):
         # Make a temporary staging directory
-        util.print_msg("info", "Downloaded repository to %s" % repo_dirpath)
-        os.makedirs(repo_dirpath); os.chdir(repo_dirpath)
+        util.print_msg("info", "Preparing repository directory at %s" % repo_dirpath)
+        os.makedirs(repo_dirpath)
+        os.chdir(repo_dirpath)
 
         download_and_untar()
+
         # Move everything from the tmpdirectory to one level up
         repofiles = [os.path.join(tmp_path, filename)
                      for filename in os.listdir(tmp_path)]
-        map(lambda f: shutil.move(f, repo_dirpath), repofiles)
-        os.rmdir(tmp_path)  # Directory should be empty!
+        map(lambda f: shutil.move(f, repo_dirpath), repofiles)  # os.rmdir requires empty dir
+        os.rmdir(tmp_path)
+    else:
+        util.exit_runtime_error("The repository's target directory exists at %s \
+        but should have been backed up to a different location. Race condition?" % repo_dirpath)
+
     util.success("Finished repository download.")
 
 
@@ -82,8 +89,8 @@ def download_repo_nongit(options):
 
     # Delegate to _create_grabrc_folder for backing up existing
     _create_grabrc_folder(options.github,
-                        options.destdir,
-                        options.outfile or Const.DEFAULT_DIRNAME)
+                          options.destdir,
+                          options.outfile or Const.DEFAULT_DIRNAME)
 
 
 def download_subdirectory(subdir_name, options):
@@ -115,7 +122,7 @@ def download_subdirectory(subdir_name, options):
         else:
             util.warn("Found an existing directory %s" % TARGET_PATH)
             util.warn("Backing up existing directory %s to %s%s" %
-                   (TARGET_PATH, TARGET_PATH, Const.BACKUP_SUFFIX))
+                      (TARGET_PATH, TARGET_PATH, Const.BACKUP_SUFFIX))
             util.backup_file(TARGET_PATH)
 
     # Try to download the repository then move it to the current directory
@@ -137,6 +144,7 @@ def download_subdirectory(subdir_name, options):
         shutil.rmtree(TMPDIR_PATH)
 
     util.success("Downloaded subdirectory %s to %s" % (subdir_name, TARGET_PATH))
+
 
 def download_file(filename, options):
     """Downloads a file from the grab-rc server"""
