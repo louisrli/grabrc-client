@@ -16,14 +16,18 @@ parser.add_option("--skip-tests", action="store_true", )
 (opts, args) = parser.parse_args()
 action = args[0]
 
+
 def shell(cmd):
     return subprocess.check_output(cmd, shell=True)
+
 
 def run_tests():
     if not opts.skip_tests:
         shell("nosetests")
 
+
 def sed_version(new_ver, filepath):
+    """ Use sed to replace a 'version=' string with the new revno"""
     # Handle Mac's BSD sed
     if shell("uname").strip() == 'Darwin':
         print "On Mac OS X..."
@@ -35,20 +39,23 @@ def sed_version(new_ver, filepath):
     shell(sed_cmd)
 
 
-# Update revision number
-revno = shell("git shortlog | grep -E '^[ ]+\w+' | wc -l").strip()
-print "Updating revision number of file to %s" % revno
-sed_version("r%s" % revno, "./client/client.py")
-print shell("grep '%s' client/client.py" % revno)
+def update_help_revno():
+    """ Updates the revno in client.py --version """
+    revno = shell("git shortlog | grep -E '^[ ]+\w+' | wc -l").strip()
+    print "Updating revision number of file to %s" % revno
+    sed_version("r%s" % revno, "./client/client.py")
+    print shell("grep '%s' client/client.py" % revno)
 
 if action == "pypi":
     run_tests()
     if not args[1]:
         print "Provide a release number for pypi"
         sys.exit(1)
+    update_help_revno()
     sed_version(args[1], "./setup.py")
     print shell("./setup.py sdist bdist_egg upload")
 if action == "rpm":
+    update_help_revno()
     run_tests()
     print shell("./setup.py bdist_rpm")
 if action == "uninstall":
