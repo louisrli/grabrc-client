@@ -11,6 +11,7 @@ from const import Const
 
 logging.basicConfig(level=logging.INFO)
 
+
 def main():
     """
     Parses command line options, then delegates to various other functions.
@@ -86,12 +87,12 @@ Examples:
         print "[%s] %s" % (level.upper(), reason)
         sys.exit(1)
 
-    try_msg = "Try either 'grabrc FILE' to download a file or 'grabrc push FILEPATH' " \
-      # TODO this should be more descriptive
+    try_msg = "Try either 'grabrc FILE' to download a file from Github \
+or 'grabrc push FILEPATH' to upload a file."
 
     # Validate options: number of arguments
-    if len(args) > 2:
-        usage_exit("error", "Invalid number of arguments ( > 2). " + try_msg)
+    if len(args) > 2 or len(args) == 0:
+        usage_exit("error", "Invalid number of arguments. " + try_msg)
 
     # Validate options: either "save" or empty
     mode = "download"
@@ -105,15 +106,15 @@ Examples:
             download_name = arg
     elif "push" in args:
         mode = "upload"
-        upload_filepath = (n for n in args if n != "save").next()
+        upload_filepath = (n for n in args if n != "push").next()
     else:
         usage_exit("error", "Invalid arguments. " + try_msg)
 
-    # Validate options: Invalid combinations
+    # Validate options: invalid combinations
     if opts.append and opts.replace:
-        usage_exit("error", "Both --append and --replace were selected. Please select one.")
+        util.exit_runtime_error("Both --append and --replace were selected. Please select only one.")
     if opts.zip and opts.tar:
-        usage_exit("error", "Both --keep-zip and --keep-tar were selected. Please select one.")
+        util.exit_runtime_error("Both --keep-zip and --keep-tar were selected. Please select only one.")
 
     # Set defaults
     opts.destdir = opts.destdir or os.getcwd()
@@ -143,10 +144,8 @@ Examples:
         cfile = open(configpath, 'r+')
         github_acc = cfile.readline().strip()
     cfile.close()
-
+    
     opts.github = github_acc
-
-    # If CLI options don't override account, use this one
     logging.debug("Github account: %s" % github_acc)
 
     # Execute actual script
