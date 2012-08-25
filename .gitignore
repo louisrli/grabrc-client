@@ -3,3 +3,6 @@
 .emacs*
 .vimrc*
 .idea/
+build/
+dist/
+*egg-info/

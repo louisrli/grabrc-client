@@ -11,9 +11,14 @@ import os
 import subprocess
 from optparse import OptionParser
 
-parser = OptionParser(usage="%prog [pypi|install|rpm|clean]")
+parser = OptionParser(usage="%prog [pypi RELEASE_VER|install|uninstall|rpm|clean]")
 parser.add_option("--skip-tests", action="store_true", )
 (opts, args) = parser.parse_args()
+
+if len(args) == 0:
+    parser.print_usage()
+    sys.exit(1)
+
 action = args[0]
 
 
