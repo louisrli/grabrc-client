@@ -6,7 +6,7 @@ import util
 from const import Const
 
 
-def save(pathname, options):
+def save(source_path, options):
     """
     Save a directory or file by overwriting and pushing to git.
     Only allows saving to a top-level directory or file.
@@ -17,11 +17,12 @@ def save(pathname, options):
     repo_url = "https://github.com/%s/%s.git" % (options.github, Const.REPO_NAME)
 
     tmp_repo = os.path.expanduser("~/%s" % Const.TMP_GIT_DIR)
-    basename = os.path.basename(util.sanitize_path(pathname))
+    basename = options.outfile or os.path.basename(util.sanitize_path(source_path))
+    path_in_repo = os.path.join(tmp_repo, basename)
 
-    if not os.path.exists(pathname):
-        util.exit_runtime_error("There doesn't seem to be a file or directory at %s" % pathname)
-        
+    if not os.path.exists(source_path):
+        util.exit_runtime_error("There doesn't seem to be a file or directory at %s" % source_path)
+
     if os.path.isdir(tmp_repo):
         # TODO - Add a local repository to be optimized, git reset hard head
         # Currently, it deletes the repository each time
@@ -41,11 +42,14 @@ def save(pathname, options):
 
     # Move target file / directory over
     try:
-        if os.path.isfile(pathname):
-            shutil.copy2(pathname, tmp_repo)
-        elif os.path.isdir(pathname):
-            shutil.copytree(pathname,
-                            os.path.join(tmp_repo, options.outfile or basename))
+        if os.path.isfile(source_path):
+            shutil.copy2(source_path,
+                         path_in_repo)
+        elif os.path.isdir(source_path):
+            # shutil.copytree doesn't overwrite an existing directory
+            shutil.rmtree(path_in_repo)
+            shutil.copytree(source_path,
+                            os.path.join(tmp_repo, basename))
     except IOError, e:
         util.exit_runtime_error(
             "Error while trying to move contents to the git repository: %s" % e)
@@ -58,7 +62,7 @@ def save(pathname, options):
     util.info("Committing to git repository...")
     (status, output) = util.exec_cmd_output(
         "git commit -m \"%s\"" %
-        ("[grabrc-client] %s" % (options.message or pathname)))
+        ("[grabrc-client] %s" % (options.message or source_path)))
     if not status:
         util.exit_runtime_error("Failed to commit files: %s" % output)
 
@@ -70,4 +74,4 @@ def save(pathname, options):
     else:
         util.info("Push successful.")
 
-    util.success("Saved %s to Github." % pathname)
+    util.success("Saved %s to Github." % source_path)

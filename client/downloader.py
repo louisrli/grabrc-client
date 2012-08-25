@@ -147,8 +147,7 @@ def download_subdirectory(subdir_name, options):
 
 
 def download_file(filename, options):
-    """Downloads a file from the grab-rc server"""
-
+    """Downloads a file from the grabrc server"""
     FILE_URL = "%s/%s/%s" % \
         (Const.SERVER_URL, options.github, filename)
 
@@ -156,33 +155,33 @@ def download_file(filename, options):
 
     contents = util.http_get_contents(FILE_URL)
 
-    # Print and exit if --print is set
     if options.stdout:
         print contents
         sys.exit(0)
 
     # Use options if they exist, otherwise fall to defaults
     outfile = options.outfile or filename
-    destdir = options.destdir
+    destdir = options.destdir or os.getcwd()
     target_path = os.path.join(destdir, outfile)
     backup_path = target_path + Const.BACKUP_SUFFIX
-    file_exists = os.path.isfile(target_path)
+    target_file_exists = os.path.isfile(target_path)
 
-    # Handle --append, --replace, or default (write to backup file if exists in `pwd`)
-    if not file_exists or options.append:
+    # Handle --append, --replace, or default behavior (default is to backup a conflict)
+    if not target_file_exists or options.append:
         handle = open(target_path, "a+")
         if options.append:
             handle.write("\n\n")  # Make appending prettier
     elif options.replace:
         handle = open(target_path, "w+")
-    elif file_exists:
+    elif target_file_exists:
         # Backup the existing file and then write the new file
-        util.warn("%s already exists! Creating a backup at: %s"
+        util.warn("A file already exists at %s! Moving it to a backup at: %s"
                   % (target_path, backup_path))
         util.backup_file(target_path)
         handle = open(target_path, "w+")
     else:
-        util.exit_runtime_error("Please file a bug.", "(Unhandled file download mode)")
+        util.exit_runtime_error("Please file a bug.",
+                                "(File download doesn't seem to cover all option cases)")
 
     logging.debug("(Outfile, Destination, Target)\n -- (%s, %s, %s)"
                   % (outfile, destdir, target_path))
