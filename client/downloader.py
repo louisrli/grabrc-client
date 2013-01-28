@@ -60,7 +60,7 @@ def _create_grabrc_folder(username, destdir, dirname):
         """Downloads a tar from the server, untars one directory up"""
         repo_targz = _get_grabrc_archive(username, "targz")
         util.untar_gz(repo_targz)
-        os.renames(glob.glob("./%s-%s*" % (username, Const.REPO_NAME))[0], tmp_path)
+        os.renames(glob.glob("./%s*" % (Const.REPO_NAME))[0], tmp_path)
 
     # Sanity check: if they have a file named with the directory (they shouldn't))
     if os.path.isfile(repo_dirpath):

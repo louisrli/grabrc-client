@@ -16,6 +16,7 @@ Holds constant values relating to grabrc
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 class Const:
+    TAR_NAME = "master"
     REPO_NAME = "grabrc-repo"  # Expected repo on Github
     PROG_NAME = "grabrc"
     SERVER_URL = "http://grabrc.heroku.com"
