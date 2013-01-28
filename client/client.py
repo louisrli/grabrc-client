@@ -41,7 +41,7 @@ Examples:
 `grabrc push /home/user/.vimrc` -- Save ~/.vimrc to Github, overwriting the existing .vimrc.
 """
 
-    parser = OptionParser(usage=usage_str, version="r26")
+    parser = OptionParser(usage=usage_str, version="r31")
 
     download_group = OptionGroup(parser, "Download: All (files, directories, repositories)")
     download_group.add_option("-o", "-O", "--name", "--outfile",
