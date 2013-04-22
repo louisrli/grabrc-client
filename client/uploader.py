@@ -64,7 +64,8 @@ def save(source_path, options):
                          path_in_repo)
         elif os.path.isdir(source_path):
             # shutil.copytree doesn't overwrite an existing directory
-            shutil.rmtree(path_in_repo)
+            if os.path.isdir(path_in_repo):
+                shutil.rmtree(path_in_repo)
             shutil.copytree(source_path,
                             os.path.join(tmp_repo, basename))
     except IOError, e:
