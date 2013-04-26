@@ -6,7 +6,7 @@ from client import const
 class DirectoryDownloadRepoTest(BaseIntegrationTest):
 
     # A list of files that are known to be in the test repository
-    EXPECTED_FILES = [".vimrc", ".emacs", "test.d"]
+    EXPECTED_FILES = [".testrc", ".emacs", "test.d"]
 
     def test_normal(self):
         """ Tests normal and --outfile repo download """

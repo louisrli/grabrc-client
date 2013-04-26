@@ -3,7 +3,7 @@ import os
 from testbase import BaseIntegrationTest
 
 TEST_STR = "# test. I don't use vim."
-TEST_FILE = ".vimrc"
+TEST_FILE = ".testrc"
 RAND_FILE = ".emacs"  # Arbitrary file whose content is unimportant
 
 # Functional test for file downloads.
