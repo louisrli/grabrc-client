@@ -16,7 +16,7 @@
 from setuptools import setup
 
 setup(name='grabrc-client',
-      version="0.4",
+      version="0.5",
       description='Lightweight, portable Github wrapper. \
 Retrieval of dotfiles (.emacs, .vimrc, etc.) in any environment',
       author='Louis Li',
